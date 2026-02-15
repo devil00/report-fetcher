@@ -1,10 +1,11 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 export enum RoleEnum { ADMIN="ADMIN", USER="USER"}
 
 @ObjectType()
-export class User {
+export class User extends BaseEntity{
   @PrimaryGeneratedColumn()
   id: number;
   
@@ -22,5 +23,13 @@ export class User {
   password: string;
 
   @Column()
-  taxID: string;
+  taxID: string;  
+
+  @Column()
+  salt: string;
+
+  async validatePassword(password: string): Promise<boolean> {
+    const hash = await bcrypt.hash(password, this.salt);
+    return hash === this.password;
+  }
 }

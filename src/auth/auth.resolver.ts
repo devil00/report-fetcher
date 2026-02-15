@@ -3,33 +3,50 @@ import { AuthService } from './auth.service';
 import { Auth } from './entities/auth.entity';
 import { CreateAuthInput } from './dto/create-auth.input';
 import { UpdateAuthInput } from './dto/update-auth.input';
+import { User } from 'src/user/dto/user-model';
+import { LoginDto } from '../auth/dto/login';
+import { SignupDto } from '../auth/dto/signup.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
-@Resolver(() => Auth)
+@Resolver(() => User)
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
-  @Mutation(() => Auth)
-  createAuth(@Args('createAuthInput') createAuthInput: CreateAuthInput) {
-    return this.authService.create(createAuthInput);
+  // @Mutation(() => Auth)
+  // @SkipAuthGuard()
+  // createAuth(@Args('createAuthInput') createAuthInput: CreateAuthInput) {
+  //   return this.authService.create(createAuthInput);
+  // }
+
+  @Public()
+  @Mutation(() => User)
+  async login(@Args('loginInput') loginInput: LoginDto) {
+    return this.authService.login(loginInput);
   }
 
-  @Query(() => [Auth], { name: 'auth' })
-  findAll() {
-    return this.authService.findAll();
+  @Public()
+  @Mutation(() => User)
+  async signUp(@Args('signUp') signUp: SignupDto) {
+    return this.authService.signUp(signUp);
   }
 
-  @Query(() => Auth, { name: 'auth' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.authService.findOne(id);
-  }
+  // @Query(() => [Auth], { name: 'auth' })
+  // findAll() {
+  //   return this.authService.login();
+  // }
 
-  @Mutation(() => Auth)
-  updateAuth(@Args('updateAuthInput') updateAuthInput: UpdateAuthInput) {
-    return this.authService.update(updateAuthInput.id, updateAuthInput);
-  }
+  // @Query(() => Auth, { name: 'auth' })
+  // findOne(@Args('id', { type: () => Int }) id: number) {
+  //   return this.authService.findOne(id);
+  // }
 
-  @Mutation(() => Auth)
-  removeAuth(@Args('id', { type: () => Int }) id: number) {
-    return this.authService.remove(id);
-  }
+  // @Mutation(() => Auth)
+  // updateAuth(@Args('updateAuthInput') updateAuthInput: UpdateAuthInput) {
+  //   return this.authService.update(updateAuthInput.id, updateAuthInput);
+  // }
+
+  // @Mutation(() => Auth)
+  // removeAuth(@Args('id', { type: () => Int }) id: number) {
+  //   return this.authService.remove(id);
+  // }
 }

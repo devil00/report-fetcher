@@ -18,4 +18,8 @@ export class CreateUserInput {
   
     @Field()
     taxID: string;
+
+    @Field()
+    salt: string;
+
 }
