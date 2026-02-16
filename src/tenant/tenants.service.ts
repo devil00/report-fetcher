@@ -9,7 +9,7 @@ import { UpdateTenantInput } from './dto/update-tenant.input';
 export class TenantsService {
   constructor(
     @InjectRepository(Tenant)
-    private readonly tenantRepository: Repository<Tenant>
+    private readonly tenantRepository: Repository<Tenant>,
   ) {}
 
   async create(createTenantInput: CreateTenantInput): Promise<Tenant> {

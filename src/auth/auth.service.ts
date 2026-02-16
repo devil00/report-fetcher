@@ -34,7 +34,12 @@ async login(loginDto: LoginDto): Promise<AuthResponse> {
       throw new UnauthorizedException('Invalid Credentials!');
     }
 
-    const payload = { sub: user?.payload?.id, name: user?.payload?.username, tax_id: user?.payload?.taxID , tenantID: 1};
+    const payload = {
+       sub: user?.payload?.id, 
+       name: user?.payload?.username, 
+       tax_id: user?.payload?.taxID , 
+       tenantID: user?.payload?.tenantID,
+      };
     const access_token = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get<string>('JWT_EXPIRESIN') ?? '10h' as any,
       secret: this.configService.get<string>('JWT_SECRET') ?? 'default_secret',
@@ -47,12 +52,14 @@ async login(loginDto: LoginDto): Promise<AuthResponse> {
 }
 
 async signUp(signupDto: SignupDto): Promise<User> {
-  const {password, username } = signupDto;
+  const {password, username, tenantID, taxID} = signupDto;
     const user = new CreateUserInput();
     user.username = username;
     user.password = password;
+    user.tenantID = tenantID;
+    user.taxID = taxID;
 
-  return this.userService.create(user);
+  return this.userService.signUp(user);
 }
 
 }

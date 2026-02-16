@@ -22,4 +22,7 @@ export class CreateUserInput {
     @Field()
     salt: string;
 
+    @Field()
+    tenantID: string;
+
 }

@@ -76,17 +76,19 @@ export class UserService {
     }
 
     async findByUsername(userName: string) {
-      return await this.userRepository.findOne({ where: { username: userName}, select: { id: true, username: true, password: true} })
+      return await this.userRepository.findOne({ where: { username: userName}, select: { id: true, username: true, password: true, taxID: true, tenantID: true })
     }
   
     async signUp(signupDto: SignupDto): Promise<User> {
-      const { password, username } = signupDto;
+      const { password, username, tenantID, taxID} = signupDto;
       const user = new User();
   
       user.salt = await bcrypt.genSalt();
       user.password = await this.hashPassword(password, user.salt);
 
       user.username = username;
+      user.tenantID = tenantID;
+      user.taxID = taxID;
   
       try {
         await user.save();

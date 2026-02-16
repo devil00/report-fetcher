@@ -15,4 +15,10 @@ export class SignupDto {
 
   @IsString()
   username: string;
+
+  @IsString()
+  tenantID: string;
+
+  @IsString()
+  taxID: string;
 }
