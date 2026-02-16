@@ -12,6 +12,10 @@ import { TenantsModule } from './tenant/tenants.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { GqlJwtAuthGuard } from './auth/guards/gql-auth.guard';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ReportModule } from './modules/report/report.module';
+import { KafkaModule } from './common/kafka/kafka.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
@@ -23,10 +27,13 @@ import { GqlJwtAuthGuard } from './auth/guards/gql-auth.guard';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), "src/schema.gql"),
-      context: ({ req }) => ({ req }),
+      context: ({ req }) => ({ req, tenantID: req.tenant?.id, }),
     }),
     UsersModule,
     AuthModule,
+    KafkaModule,
+    ScheduleModule.forRoot(),
+    ReportModule,
   ],
   controllers: [AppController],
   providers: [AppService, {provide: APP_GUARD, useClass: GqlJwtAuthGuard}],
