@@ -1,9 +1,6 @@
 import { Resolver, Query, Mutation, Args, Int, Context, Subscription,ID } from '@nestjs/graphql';
 import { ReportService } from './report.service';
-import { Report } from './dto/report';
-import { CreateReportInput } from './dto/create-report.input';
-import { UpdateReportInput } from './dto/update-report.input';
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '../../auth/guards/gql-auth.guard';
 import { REDIS_PUBSUB } from '../../common/pubsub/graphql.pubsub.module';
 import { PubSub } from 'graphql-subscriptions';
@@ -53,23 +50,8 @@ export class ReportResolver {
     
     console.log("userId:", userId);
     console.log("tenantId:", tenantId);
-
-   
-    // tenantId = 'tenant-a';
-    // userId = 1;
     return this.reportService.createReport(userId, tenantId);
   }
-
-  // @Subscription(() => String, {
-  //   filter: (payload, variables, context) =>
-  //     payload.tenantId === context.req.user.tenantId,
-  //    name: 'reportReady',
-  // })
-  // reportReady(reportID: number) {
-  //   console.log("Report ready: ")
-  //   console.log(reportID)
-  //   return this.pubSub.asyncIterableIterator('reportReady');
-  // }
 
   @UseGuards(GqlJwtAuthGuard)
   @Subscription(() => String, {
@@ -103,13 +85,6 @@ export class ReportResolver {
     console.log("📡 Subscriber connected to reportReady");
     return this.pubSub.asyncIterableIterator('reportReady');
   }
-
-
-  // @Mutation(() => Report)
-  // createReport(@Args('createReportInput') createReportInput: CreateReportInput) {
-  //   return this.reportService.create(createReportInput);
-  // }
-
 
   @UseGuards(GqlJwtAuthGuard)
   @Query(() => ReportResponse, { name: 'status' })

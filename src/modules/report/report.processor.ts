@@ -1,23 +1,17 @@
-import { Injectable, Inject ,Logger, forwardRef} from '@nestjs/common';
-import { CreateReportInput } from './dto/create-report.input';
-import { UpdateReportInput } from './dto/update-report.input';
-import { Repository } from 'typeorm';
-import { Report } from './entities/report.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, Logger} from '@nestjs/common';
 
 import { KafkaService } from '../../common/kafka/kafka.service';
 import { ReportService } from './report.service';
 import { ReportRepository } from './report.repository';
 import { ReportProviderRepository } from './providers/provider.repo';
-import { ReportProvider } from './providers/provider.service';
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { QueueNames } from 'src/common/bullmq/queue.constants';
 
-const MAX_POLL_ATTEMPTS = 10;        // 10 polls × 10s = 100s
-const MAX_CYCLE_ATTEMPTS = 3;        // full restart limit
-const POLL_DELAY = 10000;            // 10 seconds
-const COOLDOWN_DELAY = 60000;  
+// const MAX_POLL_ATTEMPTS = 10;        // 10 polls × 10s = 100s
+// const MAX_CYCLE_ATTEMPTS = 3;        // full restart limit
+// const POLL_DELAY = 10000;            // 10 seconds
+// const COOLDOWN_DELAY = 60000;  
 
 @Processor(QueueNames.REPORT)
 @Injectable()
@@ -85,7 +79,7 @@ export class ReportProcessor extends WorkerHost {
           },
         };
 
-        this.logger.log(`✅ All APIs complete for report ${reportID}`);
+        this.logger.log(`******* All APIs complete for report ${reportID}`);
 
         // Generate file URL
         const fileUrl = `https://storage/report-${reportID}.pdf`;
@@ -161,7 +155,7 @@ export class ReportProcessor extends WorkerHost {
         throw error;
       }
 
-      this.logger.error(`❌ Fatal error for report ${reportID}: ${error.message}`);
+      this.logger.error(`===> Fatal error for report ${reportID}: ${error.message}`);
       
       await this.reportRepo.update(reportID, tenantId, {
         status: 'FAILED',
@@ -271,12 +265,12 @@ export class ReportProcessor extends WorkerHost {
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    this.logger.log(`✅ Job ${job.id} completed - All APIs joined`);
+    this.logger.log(`***** Job ${job.id} completed - All APIs joined`);
   }
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error) {
-    this.logger.error(`❌ Job ${job.id} failed: ${err.message}`);
+    this.logger.error(`======> Job ${job.id} failed: ${err.message}`);
   }
 
   @OnWorkerEvent('progress')

@@ -87,6 +87,12 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR:
     volumes:
       - kafka_data:/var/lib/kafka/data  
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s  
     networks:
       - app-network
       

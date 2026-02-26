@@ -22,9 +22,6 @@
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
 ## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
 Build a backend system that aggregates data from three slow external
 providers and produces a consolidated report for an authenticated user.
 A key requirement is Multi-Tenancy: data for diﬀerent tenants must be
@@ -74,13 +71,18 @@ target database at runtime based on the tenant context.
 ```
 
 
-Steps to create report
+** Step-by-Step Report Creation Process **
+
+Follow these steps in order to successfully create a report:
 
 First,  we need to create tenant creation request through graphql mutaiton,
 Second, we need to send signup mutation request in graphql and this will create the user.
 Third, sign in user and et access token.
 Last, send create report rtequest through grapl mutation.
 
+
+** Step 1: Create a Tenant ** 
+Send a GraphQL mutation to create a new tenant with its database configuration.
 ```
 Request:
 mutation CreateTenant {
@@ -117,8 +119,11 @@ Response:
         }
     }
 }
+```
+** Step 2: Register a User ** 
+Create a user account under the newly created tenant.
 
-
+```
 Request:
 mutation SignUp {
     signUp(signUp: {
@@ -146,6 +151,11 @@ Response:
     }
 }
 
+```
+
+** Step 3: Authenticate and Obtain Access Token ** 
+Create a user account under the newly created tenant.
+```
 Request:
 
 mutation Login {
@@ -171,7 +181,89 @@ Response:
     }
 }
 ```
+** Step 4: Authenticate and Obtain Access Token ** 
+```
 
+Request:
+
+mutation CreateReport {
+  createReport {
+    status
+    reportID
+    progress
+  }
+}
+Header:
+
+{
+  "Authorization": "Bearer <your-access-token>"
+}
+
+Response:
+{
+    "data": {
+        "createReport": {
+            "status": "in_progress",
+            "reportID": 1,
+            "fileURL": null,
+            "progress": 0
+        }
+    }
+}
+
+** Step 4: Get Report status ** 
+
+Request:
+query Status {
+    status(id: 1) {
+        status
+        reportID
+        fileURL
+        progress
+    }
+}
+
+
+Response:
+{
+    "data": {
+        "status": {
+            "status": "COMPLETED",
+            "reportID": null,
+            "fileURL": null,
+            "progress": null
+        }
+    }
+}
+
+** Step 4: Get Report url ** 
+
+Request:
+query GetReportUrl {
+    getReportUrl(id: 1) {
+        status
+        reportID
+        fileURL
+        progress
+    }
+}
+
+
+Response:
+
+{
+    "data": {
+        "getReportUrl": {
+            "status": "COMPLETED",
+            "reportID": null,
+            "fileURL": "https://storage/report-1.pdf",
+            "progress": null
+        }
+    }
+}
+```
+
+The system processes reports asynchronously, returning an immediate "pending" status while background jobs handle the actual generation.
 
 ### How tenant DB switching works at runtime?
 The system uses a master database to store tenant configurations and dynamically switches to tenant-specific databases at runtime.
@@ -273,6 +365,10 @@ When all providers complete, results are aggregated and report is finalized
 
 6. Handle validations.
 
+7. Generate report with json.csv content and expose a mutation to download report.
+
+8. Skip sending null key-values in response.
+
 ## Project setup
 
 Prerequistie:
@@ -298,20 +394,20 @@ Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB
 ### Query/Mutation URL: http://localhost:3000/graphql
 
 ### Subscription WebSocket: ws://localhost:3000/graphql
+1. Send messages immediately after ws connection is established
+```
+{"type":"connection_init","payload":{"Authorization":"<Bearer Token>"}}
+```
+1. Send message to get report status
+```
+{"id":"1","type":"subscribe","payload":{"query":"subscription { reportReady }"}}
+```
 
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:
 
 - Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
