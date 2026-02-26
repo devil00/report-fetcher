@@ -31,7 +31,13 @@ export class QueueService {
 
   async addGenerateReportJob(data: { userId: string; tenantId: string; reportID:number,name: string }, opts?: JobsOptions) {
     // Idempotency via jobId (prevents duplicates)
-    const jobId = opts?.jobId ?? `welcome:${data.userId}:${data.reportID}:${data.tenantId}`;
+    // const jobId = opts?.jobId ?? `welcome:${data.userId}:${data.reportID}:${data.tenantId}`;
+
+    const jobId = opts?.jobId ?? `report_${data.reportID}_${data.tenantId.replace(/:/g, '_')}`;
+
+    console.log("=====addGenerateReportJob=====")
+    console.log(data)
+    console.log(jobId)
     return this.reportQueue.add(JobNames.GENERATE_REPORT, data, {
       jobId,
       attempts: 4, // ensure attempts is set on the job so DLQ logic can read it

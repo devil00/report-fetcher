@@ -20,6 +20,7 @@ import { KafkaModule } from 'src/common/kafka/kafka.module';
 
 @Module({
   imports: [
+  // TypeOrmModule.forFeature([]),
   TypeOrmModule.forFeature([Report, ProviderResult]),
    TenantsModule,
     QueueModule,              // QueueService should be exported from here
@@ -30,7 +31,6 @@ import { KafkaModule } from 'src/common/kafka/kafka.module';
   providers: [
     ReportService,
     ReportResolver,
-    ReportsKafkaListener,
     ReportProcessor,
     ReportRepository,
     ReportProviderRepository,
@@ -39,5 +39,6 @@ import { KafkaModule } from 'src/common/kafka/kafka.module';
   exports: [
     ReportService,
   ],
+  controllers: [ReportsKafkaListener]
 })
 export class ReportModule {}

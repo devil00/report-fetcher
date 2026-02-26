@@ -4,16 +4,19 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 
 export interface AuthenticatedUser {
   id: number;
+  userId: number;
+  sub: number;
   username: string;
   tenantId: string;
-  roles: string[];
-  token: string; // 👈 Add token to user object
+  tax_id?: string;
 }
 
 export const CurrentUser = createParamDecorator(
   (data: keyof AuthenticatedUser | undefined, context: ExecutionContext) => {
     const ctx = GqlExecutionContext.create(context);
     const user: AuthenticatedUser = ctx.getContext().req.user;
+
+    console.log('CurrentUser decorator - user:', user);
     
     if (!user) {
       throw new Error('User not found in context. Make sure AuthGuard is applied.');

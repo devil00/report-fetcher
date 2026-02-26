@@ -22,7 +22,13 @@ export class ReportsKafkaListener {
         private reportService: ReportService,
       ) {}
 
-      
+
+      onModuleInit() {
+        console.log('✅ ReportsKafkaListener registered');
+        // Log the container's environment to see which group might be used
+        console.log('KAFKA_GROUP_ID env:', process.env.KAFKA_GROUP_ID);
+      }
+
   @EventPattern('report.create')
   async handleReportCreated(@Payload() payload: any, @Ctx() context: KafkaContext) {
     console.log('Received report.create event', payload);
@@ -30,9 +36,9 @@ export class ReportsKafkaListener {
 
     this.queueService.addGenerateReportJob({
       userId: payload.userId,
-      tenantId: payload.tenantID,
-      reportID: payload.reportID,
-      name: payload.reportName,
+      tenantId: payload.tenantId,
+      reportID: payload.reportId,
+      name: payload.metadata.name,
     })
 
   }
@@ -40,9 +46,25 @@ export class ReportsKafkaListener {
   @EventPattern('report.ready')
   async handleReportReady(@Payload() payload: any, @Ctx() context: KafkaContext) {
     console.log('Received report.ready event', payload);
+
+    console.log('📨 Received report.ready event:', payload);
+  
+  // Log the full payload to see what's coming
+  console.log('Full payload:', JSON.stringify(payload, null, 2));
+  
+  // Access fields using the correct property names
+  const reportId = payload.reportId; // 👈 Use camelCase to match emitter
+  const tenantId = payload.tenantId;  // 👈 Use camelCase to match emitter
+  const fileUrl = payload.fileUrl;
+  const userId = payload.userId;
+  const format = payload.format;
+  
+  console.log(`📊 Processing report ${reportId} for tenant ${tenantId}`);
+  console.log(`📎 File URL: ${fileUrl}`);
+  console.log(`👤 User ID: ${userId}`);
+  
+  // Call service with correct parameters
+  await this.reportService.notifyReportReady(reportId, tenantId);
     // Do something: store in analytics DB, notify user, etc.
-
-    this.reportService.notifyReportReady(payload.reportID);
-
   }
 }

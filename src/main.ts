@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService, } from '@nestjs/config';
-import { Transport } from '@nestjs/microservices';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { DataSource } from "typeorm";
 
 
@@ -32,14 +32,52 @@ async function bootstrap() {
   await healthCheck.waitForKafka();
   await waitForRedis();
 
-  app.connectMicroservice({
+  // app.connectMicroservice({
+  //   transport: Transport.KAFKA,
+  //   options: {
+  //     client: { brokers: ['kafka:9092'] },
+  //     consumer: { groupId: 'report-group' },
+  //   },
+  // });
+  // await app.startAllMicroservices();
+
+  const broker = configService.get('KAFKA_BROKER', 'kafka:9092');
+  
+  // ✅ Connect Kafka microservice
+  app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
-      client: { brokers: ['kafka:9092'] },
-      consumer: { groupId: 'report-group' },
+      client: {
+        brokers: ['kafka:9092'],
+        clientId: 'nestjs-consumer',
+        retry: {
+          retries: 10,
+          initialRetryTime: 1000,
+          maxRetryTime: 30000,
+        },
+      },
+      consumer: {
+        groupId: 'nestjs-group-client',
+        allowAutoTopicCreation: true,
+        sessionTimeout: 30000,
+        rebalanceTimeout: 60000,
+        retry: {
+          retries: 5,
+        },
+      },
+      // ✅ Use type assertion to bypass the error
+      subscribe: {
+        topics: ['report.create', 'report.ready'],
+        fromBeginning: true,
+      } as any, // Temporary workaround
     },
   });
+  
+  // Start all m
+
+  // Start all microservices
   await app.startAllMicroservices();
+  
 
    const dataSource = app.get(DataSource);
   console.log('📊 Registered entities:', 

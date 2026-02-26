@@ -5,14 +5,14 @@ import { Repository } from 'typeorm';
 import { Report } from './entities/report.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
-// import { KafkaService } from '../../common/kafka/kafka.service';
+import { KafkaService } from '../../common/kafka/kafka.service';
 import { ReportService } from './report.service';
 import { ReportRepository } from './report.repository';
 import { ReportProviderRepository } from './providers/provider.repo';
-import { ReportResolver } from './report.resolver';
 import { ReportProvider } from './providers/provider.service';
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
+import { QueueNames } from 'src/common/bullmq/queue.constants';
 
 const MAX_POLL_ATTEMPTS = 10;        // 10 polls × 10s = 100s
 const MAX_CYCLE_ATTEMPTS = 3;        // full restart limit
@@ -20,7 +20,7 @@ const POLL_DELAY = 10000;            // 10 seconds
 const COOLDOWN_DELAY = 60000;  
 
 
-@Processor('report-queue')
+@Processor(QueueNames.REPORT)
 @Injectable()
 export class ReportProcessor extends WorkerHost {
      private readonly logger = new Logger(ReportProcessor.name);
@@ -37,11 +37,11 @@ export class ReportProcessor extends WorkerHost {
 
     @Inject()
     private providerA: ReportProvider,
-    @Inject()
-    private resolver: ReportResolver,
-
     // @Inject()
-    // // private readonly kafkaService: KafkaService,
+    // private resolver: ReportResolver,
+
+    @Inject()
+    private readonly kafkaService: KafkaService,
   ) {
     super();
   }
@@ -90,7 +90,7 @@ export class ReportProcessor extends WorkerHost {
           `https://storage/report-${reportID}.pdf`;
 
 
-        await this.reportRepo.update(reportID, tenantId, { ['status']: 'proccompletedessing', 'progress': 100, 'fileUrl': fileUrl });
+        await this.reportRepo.update(reportID, tenantId, { ['status']: 'completed', 'progress': 100, 'fileUrl': fileUrl });
 
         // await this.reportService.update(reportId, {
         //   status: 'COMPLETED',
@@ -178,7 +178,8 @@ export class ReportProcessor extends WorkerHost {
     // throw new Error('Still processing'); // triggers 10s retry
 
 
-    this.resolver.reportReady(report.id);
+    // this.reportService.notifyReportReady(report.id, report.tenantID)
+    // this.resolver.reportReady(report.id);
 
     //  this.kafkaProducer.emit('report.ready', {
     //         reportID: report.id,
@@ -188,13 +189,13 @@ export class ReportProcessor extends WorkerHost {
     //       });
 
     
-    //  this.kafkaService.emitReportReady({
-    //         reportId: report.id,
-    //         tenantId: tenantId,
-    //         userId: userId,
-    //         fileUrl: report.fileUrl || '',
-    //         generatedAt: new Date(),
-    //       });          
+    this.kafkaService.emitReportReady({
+            reportId: report.id,
+            tenantId: tenantId,
+            userId: userId,
+            fileUrl: report.fileUrl || '',
+            generatedAt: new Date(),
+          });          
 
     return { success: true };
   }

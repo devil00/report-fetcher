@@ -14,7 +14,7 @@ export class User extends BaseEntity{
   // })
   // role: RoleEnum;
 
-  @Column()
+  @Column({unique: true})
   username: string;
 
   @Column()

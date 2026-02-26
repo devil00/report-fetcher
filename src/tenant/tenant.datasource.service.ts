@@ -3,7 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { Tenant } from "./entities/tenant.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-
+import { Report } from "../modules/report/entities/report.entity";
+import { ProviderResult } from "../modules/report/providers/entities/provider.entity";
 import { ConfigService } from '@nestjs/config';
 
 
@@ -41,6 +42,12 @@ export class TenantConnectionService {
         password: tenant.dataSource.password,
         port:  tenant.dataSource.port,
         database: tenant.dataSource.db,
+         // 👈 Register entities here
+      entities: [
+        Report,           // Register Report entity
+        ProviderResult,   // Register any other entities
+        // Add all other entities that should exist in tenant databases
+      ],
         synchronize: true,
     });
 

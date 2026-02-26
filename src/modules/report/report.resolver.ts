@@ -9,6 +9,8 @@ import { REDIS_PUBSUB } from '../../common/pubsub/graphql.pubsub.module';
 import { PubSub } from 'graphql-subscriptions';
 import { Inject } from '@nestjs/common';
 import { ReportResponse } from './dto/report-status-response';
+import { CurrentUser } from '../../auth/decorators/current.user.decorator';
+
 
 @Resolver(() => ReportResponse)
 export class ReportResolver {
@@ -40,28 +42,62 @@ export class ReportResolver {
   @UseGuards(GqlJwtAuthGuard)
   @Mutation(() => ReportResponse)
   async createReport(
-    @Context() context: any,
+    @CurrentUser() user: any, // Gets full user object
   ) : Promise<ReportResponse>{
-    let tenantId = context.req.tenantId;
-    const userId = context.req.userId;
-    console.log("create report")
-    console.log(context.req)
-    console.log(userId)
-    console.log(tenantId)
-    tenantId = 'tenant-a';
+  
+    console.log("create report");
+    console.log("User from context:", user);
+    
+    let userId = user?.userId;
+    let tenantId = user?.tenantId;
+    
+    console.log("userId:", userId);
+    console.log("tenantId:", tenantId);
+
+   
+    // tenantId = 'tenant-a';
+    // userId = 1;
     return this.reportService.createReport(userId, tenantId);
   }
 
+  // @Subscription(() => String, {
+  //   filter: (payload, variables, context) =>
+  //     payload.tenantId === context.req.user.tenantId,
+  //    name: 'reportReady',
+  // })
+  // reportReady(reportID: number) {
+  //   console.log("Report ready: ")
+  //   console.log(reportID)
+  //   return this.pubSub.asyncIterableIterator('reportReady');
+  // }
+
   @Subscription(() => String, {
-    filter: (payload, variables, context) =>
-      payload.tenantId === context.req.user.tenantId,
-     name: 'reportReady',
+    name: 'reportReady',
+    filter: (payload, variables, context) => {
+      console.log("resolver Report ready: ")
+      console.log('🔍 Subscription filter - payload:', payload);
+      console.log('🔍 Subscription filter - context:', context);
+      
+      // Safely access user from context
+      const user = context?.req?.user;
+      
+      if (!user) {
+        console.log('⚠️ No user in subscription context');
+        return false;
+      }
+      
+      // Check if the payload belongs to this user's tenant
+      const hasAccess = payload.tenantId === user.tenantId;
+      console.log(`🔍 Filter result: ${hasAccess} (payload tenant: ${payload.tenantId}, user tenant: ${user.tenantId})`);
+      
+      return hasAccess;
+    },
   })
-  reportReady(reportID: number) {
-    console.log("Report ready: ")
-    console.log(reportID)
+  reportReady() {
+    console.log("📡 Subscriber connected to reportReady");
     return this.pubSub.asyncIterableIterator('reportReady');
   }
+
 
   // @Mutation(() => Report)
   // createReport(@Args('createReportInput') createReportInput: CreateReportInput) {
@@ -70,13 +106,25 @@ export class ReportResolver {
 
 
   @UseGuards(GqlJwtAuthGuard)
-  @Query(() => ReportResponse, { name: 'report' })
+  @Query(() => ReportResponse, { name: 'status' })
   async findStatus (@Args('id', { type: () => Int }) id: number, @Context() context: any) :Promise<ReportResponse>{
       const tenantId = context.req.user.tenantId;
 
     const report = await this.reportService.findOne(id, tenantId);
     return {
       status: report.status
+    }
+  }
+
+  @UseGuards(GqlJwtAuthGuard)
+  @Query(() => ReportResponse, { name: 'getReportUrl' })
+  async findReportUrl (@Args('id', { type: () => Int }) id: number, @Context() context: any) :Promise<ReportResponse>{
+      const tenantId = context.req.user.tenantId;
+
+    const report = await this.reportService.findOne(id, tenantId);
+    return {
+      status: report.status,
+      fileURL: report.fileUrl
     }
   }
 

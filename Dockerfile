@@ -12,4 +12,4 @@ RUN npm run build
 
 # CMD [ "npm", "run", "start:dev" ]
 
-CMD ["node", "--watch", "dist/main.js"]
+CMD ["node", "--watch", "dist/src/main.js"]

@@ -30,12 +30,12 @@ import { KAFKA_PRODUCER } from '../kafka/kafka.constants';
                 },
                 connectionTimeout: 10000,
               },
-              consumer: {
-                 groupId: 'nestjs-consumer',
-                allowAutoTopicCreation: true,
-                sessionTimeout: 30000,
-                rebalanceTimeout: 60000,
-              },
+              // consumer: {
+              //    groupId: 'report-consumer',
+              //   allowAutoTopicCreation: true,
+              //   sessionTimeout: 30000,
+              //   rebalanceTimeout: 60000,
+              // },
               producer: {
                 allowAutoTopicCreation: true,
                 idempotent: true,

@@ -1,4 +1,4 @@
-import { PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, Entity } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn,UpdateDateColumn, Entity } from 'typeorm';
 
 export enum ReportStatus {
   PENDING = 'PENDING',
@@ -26,11 +26,11 @@ export class Report {
   progress: number;
 
   @Column({ nullable: true })
-  fileUrl?: string;
+  fileUrl?: string; 
 
   @CreateDateColumn({ nullable: true })
   startedAt: Date;
 
-  @CreateDateColumn({ nullable: true })
+  @UpdateDateColumn({ nullable: true })
   finishedAt: Date;
 }

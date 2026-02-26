@@ -40,14 +40,16 @@ async login(loginDto: LoginDto): Promise<AuthResponse> {
 
     const payload = {
        sub: user.id, 
-       name: user.username, 
        tax_id: user.taxID , 
-       tenantID: user.tenantID,
+       userId: user.id, // Add both for compatibility
+       username: user.username,
+       tenantId: user.tenantID,
     };
 
     const access_token = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get<string>('JWT_EXPIRESIN') ?? '10h' as any,
-      secret: this.configService.get<string>('JWT_SECRET') ?? 'default_secret',
+      // secret: this.configService.get<string>('JWT_SECRET') ?? 'default_secret',
+      secret: 'default'
   });
   
 

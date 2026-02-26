@@ -25,21 +25,24 @@ export class GqlJwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    //  // Call parent canActivate to run JWT validation
-    // const result = (await super.canActivate(context)) as boolean;
-
-    //  // After validation, user and token are attached to request
-    // const ctx = GqlExecutionContext.create(context);
-    // const req = ctx.getContext().req;
-    
-    // // Also attach token to context for resolvers that might need it
-    // ctx.getContext().token = req.user?.token;
-    
-    const result = (await super.canActivate(context)) as boolean;
-    return result;
+    try {
+      const result = await super.canActivate(context);
+      
+      const ctx = GqlExecutionContext.create(context);
+      console.log('✅ Authentication successful, user:', ctx.getContext().req.user);
+      
+      return result as boolean;
+    } catch (error) {
+      console.error('❌ Authentication failed:', error.message);
+      throw error;
+    }
   }
 
-   handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: any, user: any, info: any) {
+    console.log('🔍 handleRequest - err:', err?.message);
+    console.log('🔍 handleRequest - info:', info);
+    console.log('🔍 handleRequest - user:', user);
+    
     if (err || !user) {
       throw err || new UnauthorizedException('Authentication required');
     }

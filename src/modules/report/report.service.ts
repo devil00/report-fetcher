@@ -1,4 +1,4 @@
-import { Injectable, Inject,forwardRef } from '@nestjs/common';
+import { Injectable, Inject, ConflictException} from '@nestjs/common';
 import { CreateReportInput } from './dto/create-report.input';
 import { ReportResponse } from './dto/report-status-response';
 import { UpdateReportInput } from './dto/update-report.input';
@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ReportRepository } from './report.repository';
 import { ReportStatus } from './dto/report';
 // import { KAFKA_PRODUCER } from '../../common/kafka/kafka.module';
-// import { KafkaService} from '../../common/kafka/kafka.service';
+import { KafkaService} from '../../common/kafka/kafka.service';
 import { REDIS_PUBSUB } from '../../common/pubsub/graphql.pubsub.module';
 import { PubSub } from 'graphql-subscriptions';
 
@@ -25,8 +25,8 @@ export class ReportService {
      @Inject()
     private readonly reporProviderRepo: ReportProviderRepository,
 
-    // @Inject()
-    // private readonly kafkaService: KafkaService,
+    @Inject()
+    private readonly kafkaService: KafkaService,
 
      @Inject(REDIS_PUBSUB) private readonly pubSub: PubSub,
   ) {}
@@ -65,17 +65,32 @@ export class ReportService {
 
 
   async createReport(userId: number, tenantId: string): Promise<ReportResponse> {
+
+    // Check for any existing report (regardless of status)
+    const anyExistingReport = await this.reportRepo.findByUserAndTenant(userId, tenantId);
+    
+    if (anyExistingReport) {
+      throw new ConflictException({
+        message: 'A report already exists for this user and tenant',
+        existingReportId: anyExistingReport.id,
+        existingReportStatus: anyExistingReport.status,
+        userId,
+        tenantId,
+      });
+    }
+
+
     const saved = await this.reportRepo.create(tenantId, userId);
 
     if (saved.id > 0) {
-      // this.kafkaService.emitReportCreated({
-      //   reportId: saved.id,
-      //   tenantId: saved.tenantID,
-      //   createdBy: "report-service",
-      //   userId: saved.userID,
-      //   timestamp: new Date(),
-      //   metadata: {"name": "Test report"},
-      // })
+      this.kafkaService.emitReportCreated({
+        reportId: saved.id,
+        tenantId: saved.tenantID,
+        createdBy: "report-service",
+        userId: saved.userID,
+        timestamp: new Date(),
+        metadata: {"name": "Test report"},
+      })
 
       // this.kafkaProducer.emit('report.create', {
       //       reportId: saved.id,
@@ -98,9 +113,15 @@ export class ReportService {
     };
   }
 
-   async notifyReportReady(reportId: string) {
+   async notifyReportReady(reportId: number, tenantId: string) {
+    console.log("report ready publishing")
+    console.log(reportId)
+
     await this.pubSub.publish('reportReady', {
-      reportReady: reportId,
+      reportReady: `Report ${reportId} is ready!`,
+      tenantId: tenantId, // 👈 Include tenantId in payload for filtering
+      reportId: reportId,
+      timestamp: new Date().toISOString(),
     });
   }
 

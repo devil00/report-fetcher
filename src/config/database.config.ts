@@ -26,9 +26,8 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
             synchronize: true,
             retryAttempts: 10,        // 👈 Number of retry attempts
             retryDelay: 3000,  
-             entities: [
+            entities: [
                 User,
-                Report,
                 Tenant,
         // Add all other entities
       ],      

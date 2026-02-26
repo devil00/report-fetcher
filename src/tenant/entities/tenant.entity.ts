@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, Unique } from 'typeorm';
 
 import type {DataSource} from '../dto/create-tenant.input';
 
 @Entity()
+@Unique(['tenantID', 'tenantName'])
 export class Tenant extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

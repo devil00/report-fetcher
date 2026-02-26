@@ -1,6 +1,5 @@
 // kafka/kafka.service.ts
 import { Injectable, Inject,OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { ClientKafka } from '@nestjs/microservices';
 import { KAFKA_PRODUCER } from '../kafka/kafka.constants';
 
