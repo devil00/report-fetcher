@@ -71,7 +71,7 @@ target database at runtime based on the tenant context.
 ```
 
 
-** Step-by-Step Report Creation Process **
+**Step-by-Step Report Creation Process**
 
 Follow these steps in order to successfully create a report:
 
@@ -81,7 +81,7 @@ Third, sign in user and et access token.
 Last, send create report rtequest through grapl mutation.
 
 
-** Step 1: Create a Tenant ** 
+**Step 1: Create a Tenant** 
 Send a GraphQL mutation to create a new tenant with its database configuration.
 ```
 Request:
@@ -120,7 +120,7 @@ Response:
     }
 }
 ```
-** Step 2: Register a User ** 
+**Step 2: Register a User** 
 Create a user account under the newly created tenant.
 
 ```
@@ -153,7 +153,7 @@ Response:
 
 ```
 
-** Step 3: Authenticate and Obtain Access Token ** 
+**Step 3: Authenticate and Obtain Access Token** 
 Create a user account under the newly created tenant.
 ```
 Request:
@@ -181,7 +181,7 @@ Response:
     }
 }
 ```
-** Step 4: Authenticate and Obtain Access Token ** 
+**Step 4: Authenticate and Obtain Access Token** 
 ```
 
 Request:
@@ -210,9 +210,9 @@ Response:
         }
     }
 }
-
-** Step 4: Get Report status ** 
-
+```
+**Step 5: Get Report status** 
+```
 Request:
 query Status {
     status(id: 1) {
@@ -235,9 +235,10 @@ Response:
         }
     }
 }
+```
 
-** Step 4: Get Report url ** 
-
+**Step 6: Get Report url** 
+```
 Request:
 query GetReportUrl {
     getReportUrl(id: 1) {
@@ -371,7 +372,7 @@ When all providers complete, results are aggregated and report is finalized
 
 ## Project setup
 
-Prerequistie:
+**Prerequistie:**
  - Max or Linux OS
  - Install docker-compose(or any other alternative) and docker
 
@@ -393,12 +394,13 @@ Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB
 ### GraphQL Endpoints
 ### Query/Mutation URL: http://localhost:3000/graphql
 
-### Subscription WebSocket: ws://localhost:3000/graphql
+### Subscription WebSocket: 
+ ws://localhost:3000/graphql
 1. Send messages immediately after ws connection is established
 ```
 {"type":"connection_init","payload":{"Authorization":"<Bearer Token>"}}
 ```
-1. Send message to get report status
+2. Send message to get report status
 ```
 {"id":"1","type":"subscribe","payload":{"query":"subscription { reportReady }"}}
 ```
