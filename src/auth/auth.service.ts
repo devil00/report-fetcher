@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { CreateUserInput } from 'src/user/dto/create-user.input';
 import { AuthResponse } from 'src/auth/dto/jwt_auth_response.dto';
 import { userInfo } from 'os';
+import { UserDTO } from 'src/user/dto/user-model';
 
 @Injectable()
 export class AuthService {
@@ -28,25 +29,29 @@ async validateUser(userName: string, password: string): Promise<{ status: boolea
 }
 
 async login(loginDto: LoginDto): Promise<AuthResponse> {
-    const user = await this.validateUser(loginDto.username, loginDto.password);
-    // const user = await this.userService.signIn(loginDto);
+    // const user = await this.validateUser(loginDto.username, loginDto.password);
+    const user = await this.userService.signIn(loginDto);
     if(!user) {
       throw new UnauthorizedException('Invalid Credentials!');
     }
 
+    console.log("login==============")
+    console.log(user)
+
     const payload = {
-       sub: user?.payload?.id, 
-       name: user?.payload?.username, 
-       tax_id: user?.payload?.taxID , 
-       tenantID: user?.payload?.tenantID,
-      };
+       sub: user.id, 
+       name: user.username, 
+       tax_id: user.taxID , 
+       tenantID: user.tenantID,
+    };
+
     const access_token = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get<string>('JWT_EXPIRESIN') ?? '10h' as any,
       secret: this.configService.get<string>('JWT_SECRET') ?? 'default_secret',
   });
   
 
-  const signInResponse: AuthResponse = { taxID: user.payload?.taxID || "", userName: user.payload?.username || "", accessToken: access_token };
+  const signInResponse: AuthResponse = { taxID: user.taxID || "", userName: user.username || "", accessToken: access_token };
 
   return signInResponse;
 }

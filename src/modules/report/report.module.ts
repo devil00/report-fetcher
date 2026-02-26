@@ -1,37 +1,43 @@
-import { Module ,forwardRef, Request} from '@nestjs/common';
+import { Module ,forwardRef, Request, Scope,ForbiddenException} from '@nestjs/common';
 import { ReportService } from './report.service';
+import { ReportRepository } from './report.repository';
 import { ReportResolver } from './report.resolver';
+import { ReportProcessor } from './report.processor';
 import { ReportsKafkaListener } from './report.event.listener';
-import { TenantsModule } from '../../tenant/tenants.module';
-import { TenantConnectionService } from '../../tenant/tenant.datasource.service';
-import { KafkaModule } from '../../common/kafka/kafka.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-@Module({
-  providers: [ReportResolver, ReportService],
-})
+import { QueueModule } from '../../common/bullmq/queue.module';
+import { Report } from '../report/entities/report.entity';
+import { ProviderResult } from '../report/providers/entities/provider.entity';
+import { ReportProviderRepository } from '../report/providers/provider.repo';
+import { GraphqlPubsubModule } from '../../common/pubsub/graphql.pubsub.module';
+import { ReportProvider } from './providers/provider.service';
+import { TenantsModule } from '../../tenant/tenants.module';
+
+import { AuthModule } from '../../auth/auth.module';
+import { KafkaModule } from 'src/common/kafka/kafka.module';
+
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Report]),
+  TypeOrmModule.forFeature([Report, ProviderResult]),
+   TenantsModule,
+    QueueModule,              // QueueService should be exported from here
+    GraphqlPubsubModule,
+    AuthModule,
     KafkaModule,
-    forwardRef(() => TenantsModule),
   ],
   providers: [
     ReportService,
-    {
-      provide: 'REPORT_REPOSITORY',
-      scope: Scope.REQUEST,
-      inject: [REQUEST, TenantConnectionService],
-      useFactory: async (req: any, tenantService: TenantConnectionService) => {
-        const tenantId = req.user?.tenantId;
-        if (!tenantId) throw new ForbiddenException('Tenant not selected');
-        const ds = await tenantService.getDataSource(tenantId);
-        return ds.getRepository(Report);
-      },
-    },
     ReportResolver,
     ReportsKafkaListener,
+    ReportProcessor,
+    ReportRepository,
+    ReportProviderRepository,
+    ReportProvider,
+  ],
+  exports: [
+    ReportService,
   ],
 })
 export class ReportModule {}

@@ -13,4 +13,5 @@ export class CreateReportInput {
 
   @Field(() => String, { description: 'Example field (placeholder)' })
   status: string;
+  
 }

@@ -1,5 +1,7 @@
 import { IsString, IsEmail, MinLength, Matches } from 'class-validator';
+import { InputType, Int, Field } from '@nestjs/graphql';
 
+@InputType()
 export class SignupDto {
 //   @IsEmail()
 //   email: string;
@@ -11,14 +13,18 @@ export class SignupDto {
     message:
       'password must contain uppercase, lowercase, number and special character',
   })
+   @Field(() => String, { description: 'Example field (placeholder)' })
   password: string;
 
   @IsString()
+   @Field(() => String, { description: 'Example field (placeholder)' })
   username: string;
 
   @IsString()
+   @Field(() => String, { description: 'Example field (placeholder)' })
   tenantID: string;
 
   @IsString()
+  @Field(() => String, { description: 'Example field (placeholder)' })
   taxID: string;
 }

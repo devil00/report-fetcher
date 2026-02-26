@@ -3,12 +3,13 @@ import { AuthService } from './auth.service';
 import { Auth } from './entities/auth.entity';
 import { CreateAuthInput } from './dto/create-auth.input';
 import { UpdateAuthInput } from './dto/update-auth.input';
-import { User } from 'src/user/dto/user-model';
+import { UserDTO } from 'src/user/dto/user-model';
 import { LoginDto } from '../auth/dto/login';
 import { SignupDto } from '../auth/dto/signup.dto';
 import { Public } from '../auth/decorators/public.decorator';
+import { AuthResponse } from './dto/jwt_auth_response.dto';
 
-@Resolver(() => User)
+@Resolver(() => UserDTO)
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
@@ -19,14 +20,14 @@ export class AuthResolver {
   // }
 
   @Public()
-  @Mutation(() => User)
-  async login(@Args('loginInput') loginInput: LoginDto) {
+  @Mutation(() => AuthResponse)
+  async login(@Args('loginInput') loginInput: LoginDto): Promise<AuthResponse> {
     return this.authService.login(loginInput);
   }
 
   @Public()
-  @Mutation(() => User)
-  async signUp(@Args('signUp') signUp: SignupDto) {
+  @Mutation(() => UserDTO)
+  async signUp(@Args('signUp') signUp: SignupDto): Promise<UserDTO> {
     return this.authService.signUp(signUp);
   }
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Tenant } from "./entities/tenant.entity";
+import { TenantDTO } from "../tenant/dto/tenant.model";
 import { Repository } from "typeorm";
 import { CreateTenantInput } from './dto/create-tenant.input';
 import { UpdateTenantInput } from './dto/update-tenant.input';
@@ -12,9 +13,14 @@ export class TenantsService {
     private readonly tenantRepository: Repository<Tenant>,
   ) {}
 
-  async create(createTenantInput: CreateTenantInput): Promise<Tenant> {
+  async create(createTenantInput: CreateTenantInput): Promise<TenantDTO> {
     const tenant = this.tenantRepository.create(createTenantInput);
-    return this.tenantRepository.save(tenant);
+    const savedTenant = await this.tenantRepository.save(tenant);
+     const res = new TenantDTO();
+     res.tenantID = savedTenant.tenantID;
+     res.tenantName = savedTenant.tenantName;
+     res.dataSource = savedTenant.dataSource;
+    return res;
   }
 
   findAll(): Promise<Tenant[]> {
@@ -30,7 +36,7 @@ export class TenantsService {
     return tenant;
   }
 
-  async update(id: number, updateTenantInput: UpdateTenantInput): Promise<Tenant> {
+  async update(id: number, updateTenantInput: UpdateTenantInput): Promise<TenantDTO> {
     const tenant = await this.tenantRepository.findOneBy({
       id: updateTenantInput.id,
     });
@@ -42,7 +48,14 @@ export class TenantsService {
     if (updateTenantInput.tenantID)
       tenant.tenantID = tenant.tenantID;
     
-    return this.tenantRepository.save(tenant);
+    const updatedTenant = await this.tenantRepository.save(tenant);
+    const res = new TenantDTO()
+
+    res.tenantID = updatedTenant.tenantID
+    res.tenantName = updatedTenant.tenantName;
+
+
+    return res
   }
 
   async remove(id: number) {

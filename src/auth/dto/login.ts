@@ -5,11 +5,11 @@ import { InputType, Int, Field } from '@nestjs/graphql';
 export class LoginDto {
     // @IsEmail()
     @IsNotEmpty()
-    @Field(() => String, { description: 'Example field (placeholder)' })
+    @Field(() => String, { description: 'Enter username)' })
     username:string
 
     @IsString()
     @IsNotEmpty()
-    @Field(() => String, { description: 'Example field (placeholder)' })
+    @Field(() => String, { description: 'Enter password' })
     password:string
 }

@@ -1,8 +1,8 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 
 @ObjectType()
-export class User {
-  @Field(() => String, { description: 'Example field (placeholder)' })
+export class UserDTO {
+  @Field(() => String, {  nullable: true , description: 'Example field (placeholder)' })
   tenantID: string;
 
   @Field(() => String, { description: 'Example field (placeholder)' })

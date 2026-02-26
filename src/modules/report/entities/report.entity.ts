@@ -1,7 +1,36 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, Entity } from 'typeorm';
 
-@ObjectType()
+export enum ReportStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+@Entity()
 export class Report {
-  @Field(() => Int, { description: 'Example field (placeholder)' })
-  exampleField: number;
+  @Column()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({default: 'PENDING'})
+  status: string;
+
+  @Column({})
+  userID: number;
+
+   @Column({})
+  tenantID: string;
+
+  @Column({default: 0})
+  progress: number;
+
+  @Column({ nullable: true })
+  fileUrl?: string;
+
+  @CreateDateColumn({ nullable: true })
+  startedAt: Date;
+
+  @CreateDateColumn({ nullable: true })
+  finishedAt: Date;
 }

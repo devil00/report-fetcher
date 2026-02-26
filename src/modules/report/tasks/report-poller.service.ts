@@ -5,7 +5,7 @@ import { Cron } from '@nestjs/schedule';
 export class ReportPollerService {
   private readonly logger = new Logger(ReportPollerService.name);
 
-  @Cron('10 * * * * *')
+  // @Cron('10 * * * * *')
   handleCron() {
     this.logger.debug('Called when the current second is 10');
   }

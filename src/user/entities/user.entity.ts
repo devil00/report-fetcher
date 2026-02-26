@@ -1,10 +1,8 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 export enum RoleEnum { ADMIN="ADMIN", USER="USER"}
-
-@ObjectType()
+@Entity()
 export class User extends BaseEntity{
   @PrimaryGeneratedColumn()
   id: number;

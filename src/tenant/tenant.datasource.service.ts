@@ -25,17 +25,22 @@ export class TenantConnectionService {
     if (existing) {
         return existing;
     }
+    console.log("============TenantConnectionService=======================")
+    console.log(tenantId)
 
     const tenant = await this.tenantRepo.findOneBy({ tenantID: tenantId });
     if (!tenant) throw new Error(`Tenant #${tenantId} not found`);;
-    
 
+    console.log("============TenantConnectionService=======================")
+    console.log(tenant)
+    
     const dataSource = new DataSource({
         type: 'postgres',
-        host: this.configService.get<string>('postgres.host'),
-        username: this.configService.get<string>('postgres.username'),
-        password: this.configService.get<string>('postgres.password'),
-        port: parseInt(this.configService.getOrThrow<string>('postgres.port')),
+        host: tenant.dataSource.host,
+        username: tenant.dataSource.username,
+        password: tenant.dataSource.password,
+        port:  tenant.dataSource.port,
+        database: tenant.dataSource.db,
         synchronize: true,
     });
 
