@@ -33,6 +33,7 @@ target database at runtime based on the tenant context.
 
 ## Approach
 
+``` bash
 ./src
 ├── auth
 │   ├── decorators
@@ -60,15 +61,17 @@ target database at runtime based on the tenant context.
 └── user
     ├── dto
     └── entities
+```
 
  A NestJS-based microservices architecture for managing multi-tenant report generation with Kafka event-driven communication and BullMQ task scheduling.
+ ``` bash
  ├── src/
 │   ├── modules/
 │   │   ├── user/          # User management (CRUD operations)
 │   │   ├── auth/          # Authentication (Passport.js, JWT, GraphQL guards)
 │   │   └── report/        # Report orchestration and processing
 │   └── common/            # Infrastructure setup (Kafka, BullMQ, Redis PubSub)
-
+```
 
 
 Steps to create report
