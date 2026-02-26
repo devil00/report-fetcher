@@ -19,252 +19,268 @@ const MAX_CYCLE_ATTEMPTS = 3;        // full restart limit
 const POLL_DELAY = 10000;            // 10 seconds
 const COOLDOWN_DELAY = 60000;  
 
-
 @Processor(QueueNames.REPORT)
 @Injectable()
 export class ReportProcessor extends WorkerHost {
-     private readonly logger = new Logger(ReportProcessor.name);
-  
+  private readonly logger = new Logger(ReportProcessor.name);
+  private readonly MAX_POLL_ATTEMPTS = 30;
+
   constructor(
     private readonly reportService: ReportService,
-    private readonly providerService: ReportProvider,
-    
-    @Inject() // Not needed, but can be explicit
     private readonly reportRepo: ReportRepository,
-
-    @Inject()
     private readonly reporProviderRepo: ReportProviderRepository,
-
-    @Inject()
-    private providerA: ReportProvider,
-    // @Inject()
-    // private resolver: ReportResolver,
-
-    @Inject()
     private readonly kafkaService: KafkaService,
   ) {
     super();
   }
 
-  // This replaces the async (job: Job) => { ... } logic
   async process(job: Job<any, any, string>): Promise<any> {
-    // Your logic goes here
-    // e.g., await this.reportService.doSomething(job.data);
-    // data: { userId: string; tenantId: string; reportID:number,name: string 
+    const { userId, tenantId, reportID, name, pollAttempts = 0 } = job.data;
 
-    this.logger.log(`Processing job ${job.id} for ${job.data.email}`);
-    await job.updateProgress(10);
+    this.logger.log(`🔄 Processing job ${job.id} for report ${reportID} (attempt ${pollAttempts + 1})`);
 
-     const { userId, tenantId, reportID, name } = job.data;
+    try {
+      // Check max attempts
+      if (pollAttempts >= this.MAX_POLL_ATTEMPTS) {
+        throw new Error('Max polling attempts reached');
+      }
 
-        // await this.reportRepo.update(reportId, tenantId, {
-        //   status: 'PROCESSING',
-        //   progress: 10,
-        // });
+      // Update progress
+      await job.updateProgress(Math.min(20 + (pollAttempts * 3), 90));
 
-        await this.reportRepo.update(reportID, tenantId, { ['status']: 'processing', 'progress': 10 });
+      // 🚀 CALL THREE APIS IN PARALLEL
+      const [api1Result, api2Result, api3Result] = await Promise.all([
+        this.callApi1(reportID, tenantId),
+        this.callApi2(reportID, tenantId),
+        this.callApi3(reportID, tenantId),
+      ]);
 
-        // Fetch providers in parallel
-        // const [a, b, c] = await Promise.all([
-        //   this.providerA.fetch(),
-        //   this.providerB.fetch(),
-        //   this.providerC.fetch(),
-        // ]);
+      this.logger.log(`📡 API Results:`, {
+        api1: api1Result.status,
+        api2: api2Result.status,
+        api3: api3Result.status,
+      });
 
-         const [a, b, c] = await Promise.all([
-          this.providerA.fetch({ ...job.data, provider: 'A' }),
-          this.providerA.fetch({ ...job.data, provider: 'B' }),
-          this.providerA.fetch({ ...job.data, provider: 'C' }),
-        ]);
+      // Check if all APIs are complete
+      const allComplete = 
+        api1Result.status === 'complete' &&
+        api2Result.status === 'complete' &&
+        api3Result.status === 'complete';
 
-        const aggregated = {
-          ...a,
-          ...b,
-          ...c,
+      if (allComplete) {
+        // 🎯 JOIN THE RESULTS
+        const aggregatedData = {
+          reportID,
+          tenantId,
+          userId,
+          completedAt: new Date().toISOString(),
+          api1: api1Result.data,
+          api2: api2Result.data,
+          api3: api3Result.data,
+          // Merge all data
+          mergedData: {
+            ...api1Result.data,
+            ...api2Result.data,
+            ...api3Result.data,
+          },
         };
 
-        // Simulate PDF generation
-        await new Promise(r => setTimeout(r, 2000));
+        this.logger.log(`✅ All APIs complete for report ${reportID}`);
 
-        const fileUrl =
-          `https://storage/report-${reportID}.pdf`;
+        // Generate file URL
+        const fileUrl = `https://storage/report-${reportID}.pdf`;
 
+        // Update database
+        await this.reportRepo.update(reportID, tenantId, {
+          status: 'COMPLETED',
+          progress: 100,
+          fileUrl,
+          // aggregatedData, // Store joined results
+          finishedAt: new Date(),
+        });
 
-        await this.reportRepo.update(reportID, tenantId, { ['status']: 'completed', 'progress': 100, 'fileUrl': fileUrl });
+        // Fetch updated report
+        const report = await this.reportRepo.findOne(reportID, tenantId);
 
-        // await this.reportService.update(reportId, {
-        //   status: 'COMPLETED',
-        //   fileUrl,
-        //   progress: 100,
-        // });
+        // Emit Kafka event
+        await this.kafkaService.emitReportReady({
+          reportId: report.id,
+          tenantId,
+          userId,
+          fileUrl,
+          generatedAt: new Date(),
+        });
 
-        const report =
-        await this.reportRepo.findOne(reportID, tenantId);
+        await job.updateProgress(100);
 
-          // -------- actual start
+        return { 
+          success: true, 
+          reportID,
+          fileUrl,
+          data: aggregatedData 
+        };
+      }
 
+      // ⏳ SOME APIS STILL PROCESSING - Check which ones are pending
+      const pendingApis: string[] = [];
+      if (api1Result.status !== 'complete') pendingApis.push('API 1');
+      if (api2Result.status !== 'complete') pendingApis.push('API 2');
+      if (api3Result.status !== 'complete') pendingApis.push('API 3');
 
-    //       const { reportId, providerId, provider, externalId } = job.data;
+      this.logger.log(`⏳ Pending APIs for report ${reportID}: ${pendingApis.join(', ')}`);
 
-    // const providerEntry =
-    //   await this.providerRepo.findOne({
-    //     where: { id: providerId },
-    //   });
+      // Update job data with current status
+      await job.updateData({
+        ...job.data,
+        pollAttempts: pollAttempts + 1,
+        lastPollTime: new Date().toISOString(),
+        apiStatus: {
+          api1: api1Result.status,
+          api2: api2Result.status,
+          api3: api3Result.status,
+        },
+      });
 
-    // if (!providerEntry) return;
+      // Update report progress in database
+      await this.reportRepo.update(reportID, tenantId, {
+        status: 'PROCESSING',
+        progress: Math.min(20 + (pollAttempts * 3), 80),
+        // apiStatus: {
+        //   api1: provider1Result.status,
+        //   api2: provider2Result.status,
+        //   api3: provider3Result.status,
+        // },
+      });
 
-    // // 🚀 START STEP (only once per cycle)
-    // if (!providerEntry.externalId) {
+      // Throw to trigger BullMQ retry
+      throw new Error('STILL_PROCESSING');
 
-    //   const start =
-    //     await this.providerService.startReport(provider);
+    } catch (error) {
+      if (error.message === 'STILL_PROCESSING') {
+        // Let BullMQ handle retry
+        throw error;
+      }
 
-    //   await this.providerRepo.update(providerId, {
-    //     externalId: start.id,
-    //     status: 'IN_PROGRESS',
-    //     pollAttempts: 0,
-    //   });
+      this.logger.error(`❌ Fatal error for report ${reportID}: ${error.message}`);
+      
+      await this.reportRepo.update(reportID, tenantId, {
+        status: 'FAILED',
+      });
+      
+      throw error;
+    }
+  }
 
-    //   await job.update({
-    //     ...job.data,
-    //     externalId: start.id,
-    //   });
-
-    //   throw new Error('Start polling');
-    // }
-
-    // // 🔄 POLLING STEP
-    // const status =
-    //   await this.providerService.checkStatus(
-    //     provider,
-    //     providerEntry.externalId,
-    //   );
-
-    // // SUCCESS
-    // if (status.status === 'success') {
-
-    //   const data =
-    //     await this.providerService.fetchReport(
-    //       provider,
-    //       status.report_id,
-    //     );
-
-    //   await this.providerRepo.update(providerId, {
-    //     status: 'COMPLETED',
-    //     data,
-    //   });
-
-    //   await this.tryFinalize(reportId);
-
-    //   return;
-    // }
-
-    // // PROVIDER FAILED IMMEDIATELY
-    // if (status.status === 'failed') {
-    //   return this.scheduleFullRetry(providerEntry, job);
-    // }
-
-    // // STILL PROCESSING
-    // const pollAttempts = providerEntry.pollAttempts + 1;
-
-    // if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-    //   return this.scheduleFullRetry(providerEntry, job);
-    // }
-
-    // await this.providerRepo.update(providerId, {
-    //   pollAttempts,
-    // });
-
-    // throw new Error('Still processing'); // triggers 10s retry
-
-
-    // this.reportService.notifyReportReady(report.id, report.tenantID)
-    // this.resolver.reportReady(report.id);
-
-    //  this.kafkaProducer.emit('report.ready', {
-    //         reportID: report.id,
-    //         tenantId: tenantId,
-    //         userId: userId,
-    //         fileUrl: report.fileUrl,
-    //       });
-
+  /**
+   * Mock API calls - Replace with actual HTTP requests
+   */
+  private async callApi1(reportID: number, tenantId: string): Promise<any> {
+    this.logger.log(`📞 Calling API 1 for report ${reportID}`);
+    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
     
-    this.kafkaService.emitReportReady({
-            reportId: report.id,
-            tenantId: tenantId,
-            userId: userId,
-            fileUrl: report.fileUrl || '',
-            generatedAt: new Date(),
-          });          
+    // Simulate different statuses based on reportID or attempts
+    const status = this.simulateApiStatus(reportID, 1);
+    
+    return {
+      status: status,
+      data: status === 'complete' ? {
+        source: 'api1',
+        data: `Data from API 1 for report ${reportID}`,
+        timestamp: new Date().toISOString(),
+        metrics: { responseTime: 123, confidence: 0.95 }
+      } : null
+    };
+  }
 
-    return { success: true };
+  private async callApi2(reportID: number, tenantId: string): Promise<any> {
+    this.logger.log(`📞 Calling API 2 for report ${reportID}`);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    const status = this.simulateApiStatus(reportID, 2);
+    
+    return {
+      status: status,
+      data: status === 'complete' ? {
+        source: 'api2',
+        data: `Data from API 2 for report ${reportID}`,
+        timestamp: new Date().toISOString(),
+        metrics: { responseTime: 234, confidence: 0.88 }
+      } : null
+    };
+  }
+
+  private async callApi3(reportID: number, tenantId: string): Promise<any> {
+    this.logger.log(`📞 Calling API 3 for report ${reportID}`);
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    const status = this.simulateApiStatus(reportID, 3);
+    
+    return {
+      status: status,
+      data: status === 'complete' ? {
+        source: 'api3',
+        data: `Data from API 3 for report ${reportID}`,
+        timestamp: new Date().toISOString(),
+        metrics: { responseTime: 345, confidence: 0.92 }
+      } : null
+    };
+  }
+
+  /**
+   * Simulate API status for demo purposes
+   * Replace with actual API response parsing
+   */
+  private simulateApiStatus(reportID: number, apiNumber: number): string {
+    // For demo: APIs complete at different rates
+    // API 1 completes faster, API 2 slower, API 3 medium
+    const thresholds = {
+      1: 0.7,  // 70% chance of completion
+      2: 0.3,  // 30% chance of completion
+      3: 0.5,  // 50% chance of completion
+    };
+    
+    // Use reportID to make it deterministic
+    const random = ((reportID * apiNumber) % 100) / 100;
+    return random < thresholds[apiNumber] ? 'complete' : 'processing';
+  }
+
+  /**
+   * Alternative: Real API calls with fetch
+   */
+  private async callRealApi1(reportID: number, tenantId: string): Promise<any> {
+    try {
+      const response = await fetch(`https://api1.example.com/reports/${reportID}`, {
+        headers: { 'X-Tenant-ID': tenantId }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API 1 failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        status: data.status === 'ready' ? 'complete' : 'processing',
+        data: data.status === 'ready' ? data.result : null
+      };
+    } catch (error) {
+      this.logger.error(`API 1 call failed: ${error.message}`);
+      return { status: 'failed', error: error.message };
+    }
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job) {
-    console.log(`Job ${job.id} has been completed!`);
+    this.logger.log(`✅ Job ${job.id} completed - All APIs joined`);
   }
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error) {
-    console.error(`Job ${job.id} failed with error: ${err.message}`);
+    this.logger.error(`❌ Job ${job.id} failed: ${err.message}`);
   }
 
-//   private async scheduleFullRetry(providerEntry, job: Job) {
-
-//   const newCycle = providerEntry.cycleAttempts + 1;
-
-//   if (newCycle >= MAX_CYCLE_ATTEMPTS) {
-
-//     await this.providerRepo.update(providerEntry.id, {
-//       status: 'FAILED',
-//     });
-
-//     await this.failReportIfNecessary(providerEntry.reportId);
-
-//     return;
-//   }
-
-//   await this.providerRepo.update(providerEntry.id, {
-//     externalId: null,
-//     pollAttempts: 0,
-//     cycleAttempts: newCycle,
-//     status: 'RETRY_SCHEDULED',
-//   });
-
-//   await job.moveToDelayed(Date.now() + COOLDOWN_DELAY);
-// }
-
-// private async tryFinalize(reportId: string) {
-
-//   const completed =
-//     await this.providerRepo.count({
-//       where: { reportId, status: 'COMPLETED' },
-//     });
-
-//   if (completed === 3) {
-
-//     await this.reportRepo.update(reportId, {
-//       status: 'COMPLETED',
-//       finalReportUrl: `https://storage/${reportId}.pdf`,
-//     });
-//   }
-// }
-
-// private async failReportIfNecessary(reportId: string) {
-
-//   const failed =
-//     await this.providerRepo.count({
-//       where: { reportId, status: 'FAILED' },
-//     });
-
-//   if (failed > 0) {
-
-//     await this.reportRepo.update(reportId, {
-//       status: 'FAILED',
-//     });
-//   }
-// }
-// }
-
+  @OnWorkerEvent('progress')
+  onProgress(job: Job, progress: number) {
+    this.logger.log(`📊 Job ${job.id} progress: ${progress}%`);
+  }
 }

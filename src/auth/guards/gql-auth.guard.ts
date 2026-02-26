@@ -20,7 +20,7 @@ export class GqlJwtAuthGuard extends AuthGuard('jwt') {
       // and has already been moved to req.headers in the onConnect hook
       return request; 
     }
-    
+
     return ctx.getContext().req;
   }
 
@@ -33,6 +33,21 @@ export class GqlJwtAuthGuard extends AuthGuard('jwt') {
     if (isPublic) {
       return true;
     }
+
+      let isGraphQL = false;
+      try {
+        const ctx = GqlExecutionContext.create(context);
+        isGraphQL = !!ctx.getContext().req;
+      } catch {
+        isGraphQL = false;
+      }
+
+      // If not GraphQL, maybe it's a REST endpoint or static file
+      if (!isGraphQL) {
+        // Let it pass or handle differently
+        console.log('⚠️ Non-GraphQL request bypassing auth');
+        return true; // or false if you want to block
+      }
 
     try {
       const result = await super.canActivate(context);

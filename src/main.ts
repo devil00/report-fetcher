@@ -65,6 +65,7 @@ async function bootstrap() {
           retries: 5,
         },
       },
+      
       // ✅ Use type assertion to bypass the error
       subscribe: {
         topics: ['report.create', 'report.ready'],

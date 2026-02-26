@@ -25,50 +25,262 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+Build a backend system that aggregates data from three slow external
+providers and produces a consolidated report for an authenticated user.
+A key requirement is Multi-Tenancy: data for diﬀerent tenants must be
+stored in separate physical databases, and the system must switch the
+target database at runtime based on the tenant context.
+
+## Approach
+
+./src
+├── auth
+│   ├── decorators
+│   ├── dto
+│   ├── entities
+│   ├── guards
+│   └── strategies
+├── common
+│   ├── bullmq
+│   ├── interfaces
+│   ├── kafka
+│   └── pubsub
+├── config
+├── modules
+│   ├── providers
+│   └── report
+│       ├── dto
+│       ├── entities
+│       ├── providers
+│       │   └── entities
+│       └── tasks
+├── tenant
+│   ├── dto
+│   └── entities
+└── user
+    ├── dto
+    └── entities
+
+ A NestJS-based microservices architecture for managing multi-tenant report generation with Kafka event-driven communication and BullMQ task scheduling.
+ ├── src/
+│   ├── modules/
+│   │   ├── user/          # User management (CRUD operations)
+│   │   ├── auth/          # Authentication (Passport.js, JWT, GraphQL guards)
+│   │   └── report/        # Report orchestration and processing
+│   └── common/            # Infrastructure setup (Kafka, BullMQ, Redis PubSub)
+
+
+
+Steps to create report
+
+First,  we need to create tenant creation request through graphql mutaiton,
+Second, we need to send signup mutation request in graphql and this will create the user.
+Third, sign in user and et access token.
+Last, send create report rtequest through grapl mutation.
+
+Request:
+mutation CreateTenant {
+    createTenant(createTenantInput: {
+             tenantID: "tenant-a",
+            tenantName: "tenant-a",
+            dataSource: {
+                host: "db",
+                username: "postgres",
+                password: "postgres",
+                port: "5432",
+                db: "tenantA"
+            }
+    }) {
+        tenantID
+        tenantName
+        dataSource
+    }
+}
+
+Response:
+{
+    "data": {
+        "createTenant": {
+            "tenantID": "tenant-a",
+            "tenantName": "tenant-a",
+            "dataSource": {
+                "host": "db",
+                "username": "postgres",
+                "password": "postgres",
+                "port": "5432",
+                "db": "tenantA"
+            }
+        }
+    }
+}
+
+Request:
+mutation SignUp {
+    signUp(signUp: {
+         tenantID: "tenant-a",
+        username: "user-a",
+        password: "pass",
+        taxID: "tax-123"
+    }) {
+        tenantID
+        username
+        password
+        taxID
+    }
+}
+
+Request:
+
+mutation Login {
+    login(loginInput: {
+        username: "user-a",
+        password: "pass",
+    }) {
+        accessToken
+        userName
+        taxID
+    }
+}
+
+
+Response:
+{
+    "data": {
+        "login": {
+            "accessToken": "",
+            "userName": "user-a",
+            "taxID": "tax-123"
+        }
+    }
+}
+
+
+
+### How tenant DB switching works at runtime?
+The system uses a master database to store tenant configurations and dynamically switches to tenant-specific databases at runtime.
+Instead of holding HTTP requests open, the system uses an event-driven approach:
+
+How it works:
+
+1. Tenant configurations are stored in a master database table
+
+2. JWT token provides tenantId for each authenticated request
+
+3. TenantDataSourceService manages a connection pool cache
+
+4. Inject this service into repositories for tenant context switching
+
+5. Example: ReportRepository demonstrates this pattern
+
+### How long-running report generation is orchestrated without holding requests open?
+
+1. Report Request Received
+
+  - Report entity saved to tenant database
+
+  - Immediate response: {"status": "pending"}
+
+  - Kafka event emitted to report.create topic
+
+2. Event Processing Pipeline
+
+  - Kafka Event Listener consumes report.create events
+
+  - Forwards to BullMQ for task scheduling
+
+3. Parallel Processing with BullMQ
+  - The ReportProcessor worker handles:
+
+✅ Polling external providers every 10 seconds
+
+✅ Database updates with progress tracking
+
+✅ Parallel API calls to three mock providers
+
+✅ Automatic retry queue for incomplete providers
+
+✅ Kafka event emission when reports are ready
+
+4. Completion Notification
+
+  - Kafka listener consumes report.ready events
+
+  - Triggers GraphQL subscription for real-time updates
+5. Users can monitor report status via WebSocket connection:
+
+```
+subscription {
+    reportReady
+}
+```
+
+### How Provider Polling Works
+The system uses BullMQ's built-in retry mechanism for efficient polling:
+// QueueService adds job with polling configuration
+await this.reportQueue.add('generate-report', data, {
+    attempts: 30,                    // Max 30 attempts (5 minutes)
+    backoff: { type: 'fixed', delay: 10000 }  // 10 seconds between retries
+});
+#### Polling Flow:
+
+Processor checks all three providers in parallel
+
+If any provider returns "processing", job throws STILL_PROCESSING error
+
+BullMQ automatically retries after configured delay
+
+When all providers complete, results are aggregated and report is finalized
+
+## Assumptions
+1. Report providers are mocked via API calls in report.processor.ts
+
+2. Only endpoints documented above are tested
+
+3. Development environment configuration can be adapted for production
+
+4. Report download URLs are mocked (returns dummy URLs)
+
+5. GraphQL subscriptions are tenant-aware via JWT token validation
+
+
+## Improvements
+1. Add separate ReportProvider entity for better provider management
+
+2. Code cleanup and refactoring for better maintainability
+
+3. Enhanced error handling and monitoring
+
+4. Provider-specific retry strategies
+
+5. Dashboard for job monitoring
+
+6. Handle validations.
+
 ## Project setup
 
-```bash
-$ yarn install
-```
-
-## Compile and run the project
+Prerequistie:
+ - Max or Linux OS
+ - Install docker-compose(or any other alternative) and docker
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+$ docker system prune
+$ docker compose up --build
 ```
 
-## Run tests
-
+If the above setup fails, then try to install npm in the system os.
+Run below commands to verify nest setup.
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+$ npm install
+$ npm start
 ```
 
-## Deployment
+Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB.Currently, those databses can be created in the same postgresql database after all docker contains are up
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## API Documentation
+### GraphQL Endpoints
+### Query/Mutation URL: http://localhost:3000/graphql
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Subscription WebSocket: ws://localhost:3000/graphql
 
 ## Resources
 
@@ -88,11 +300,4 @@ Check out a few resources that may come in handy when working with NestJS:
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
 ## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Author - [Mayur Swami](https://github.com/devil00)
