@@ -81,6 +81,7 @@ Second, we need to send signup mutation request in graphql and this will create 
 Third, sign in user and et access token.
 Last, send create report rtequest through grapl mutation.
 
+```
 Request:
 mutation CreateTenant {
     createTenant(createTenantInput: {
@@ -117,6 +118,7 @@ Response:
     }
 }
 
+
 Request:
 mutation SignUp {
     signUp(signUp: {
@@ -129,6 +131,18 @@ mutation SignUp {
         username
         password
         taxID
+    }
+}
+
+Response:
+{
+    "data": {
+        "signUp": {
+            "tenantID": "tenant-a",
+            "username": "user-a",
+            "password": "$2b$10$lk0Ufbhrw4rqvXpu83uxOuOR/tOSvg8F.bj5JYqFFd8jpaq9ZbPVe",
+            "taxID": "tax-123"
+        }
     }
 }
 
@@ -156,7 +170,7 @@ Response:
         }
     }
 }
-
+```
 
 
 ### How tenant DB switching works at runtime?
