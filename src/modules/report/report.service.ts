@@ -113,7 +113,7 @@ export class ReportService {
     };
   }
 
-   async notifyReportReady(reportId: number, tenantId: string) {
+   async notifyReportReady(reportId: number, tenantId: string, userId: number) {
     console.log("report ready publishing")
     console.log(reportId)
 
@@ -121,6 +121,7 @@ export class ReportService {
       reportReady: `Report ${reportId} is ready!`,
       tenantId: tenantId, // 👈 Include tenantId in payload for filtering
       reportId: reportId,
+      userId: userId,
       timestamp: new Date().toISOString(),
     });
   }

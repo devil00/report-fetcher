@@ -64,7 +64,7 @@ export class ReportsKafkaListener {
   console.log(`👤 User ID: ${userId}`);
   
   // Call service with correct parameters
-  await this.reportService.notifyReportReady(reportId, tenantId);
+  await this.reportService.notifyReportReady(reportId, tenantId, userId);
     // Do something: store in analytics DB, notify user, etc.
   }
 }

@@ -36,15 +36,12 @@ import { QueueModule } from './common/bullmq/queue.module';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), "src/schema.gql"),
-      context: ({ req,connection }) => {
-        // Log to debug
-        console.log('📨 GraphQL Context - Headers:', req.headers.authorization);
-        console.log('📨 GraphQL Context - User:', req.user);
-        console.log('📨 GraphQL connection - :',connection);
+      context: ({ req, connection }) => {
         
         // HTTP request
         if (req) {
           console.log('📨 HTTP Request - Headers auth:', req.headers.authorization ? 'Present' : 'Missing');
+          console.log('📨 HTTP Request - User:', req.user);
           return { req };
         }
         
@@ -59,14 +56,15 @@ import { QueueModule } from './common/bullmq/queue.module';
           };
         }
         
+        console.log('⚠️ No request or connection found');
         return { req: { headers: {}, user: null } };
       },
       subscriptions: {
         'graphql-ws': {
+          path: '/graphql',
           onConnect: (context: any) => {
             console.log('🔌 WebSocket connection attempt');
             
-            // Extract token from connection params
             const connectionParams = context.connectionParams || {};
             const authToken = connectionParams.Authorization || 
                              connectionParams.authorization || 
@@ -74,13 +72,12 @@ import { QueueModule } from './common/bullmq/queue.module';
             
             console.log('🔑 WebSocket token present:', !!authToken);
             
-            // Return context that will be available in resolvers
             return {
               req: {
                 headers: {
                   authorization: authToken,
                 },
-                user: null, // Will be populated by auth guard
+                user: null,
               },
             };
           },

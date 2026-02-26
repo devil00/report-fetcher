@@ -12,6 +12,15 @@ export class GqlJwtAuthGuard extends AuthGuard('jwt') {
 
   getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
+    const request = ctx.getContext().req;
+
+    // Check if the request is a subscription (WebSocket)
+    if (request.headers === undefined) {
+      // If it's a subscription, the authorization header is in connectionParams
+      // and has already been moved to req.headers in the onConnect hook
+      return request; 
+    }
+    
     return ctx.getContext().req;
   }
 

@@ -28,8 +28,8 @@ export class ReportResolver {
 
   @UseGuards(GqlJwtAuthGuard)
   @Query(() => [ReportResponse])
-  async findOne( @Context() context: any, @Args('reportID', { type: () => ID }) reportID: number) : Promise<ReportResponse>{
-    const tenantId = context.req.user.tenantId;
+  async findOne( @CurrentUser() user: any, @Args('reportID', { type: () => ID }) reportID: number) : Promise<ReportResponse>{
+    let tenantId = user?.tenantId;
     const report = await  this.reportService.findOne(reportID, tenantId);
     const res = new ReportResponse();
     res.progress = report.progress;
@@ -71,12 +71,18 @@ export class ReportResolver {
   //   return this.pubSub.asyncIterableIterator('reportReady');
   // }
 
+  @UseGuards(GqlJwtAuthGuard)
   @Subscription(() => String, {
     name: 'reportReady',
     filter: (payload, variables, context) => {
       console.log("resolver Report ready: ")
       console.log('🔍 Subscription filter - payload:', payload);
       console.log('🔍 Subscription filter - context:', context);
+
+      console.log('🔍 Subscription filter - context:', {
+        hasUser: !!context?.req?.user,
+        user: context?.req?.user,
+      });
       
       // Safely access user from context
       const user = context?.req?.user;
@@ -87,7 +93,7 @@ export class ReportResolver {
       }
       
       // Check if the payload belongs to this user's tenant
-      const hasAccess = payload.tenantId === user.tenantId;
+      const hasAccess = payload.userId === user.tenantId; 
       console.log(`🔍 Filter result: ${hasAccess} (payload tenant: ${payload.tenantId}, user tenant: ${user.tenantId})`);
       
       return hasAccess;

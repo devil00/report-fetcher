@@ -5,8 +5,6 @@ export enum QueueNames {
 }
 
 export const JobNames = {
-  SCHEDULE_APPOINTMENT: 'schedule-appointment',
-  APPOINTMENT_DIGEST: 'appointment-digest',
   DEAD_LETTER: 'dead-letter',
   GENERATE_REPORT: 'generate-report'
 };
