@@ -389,7 +389,7 @@ $ npm install
 $ npm start
 ```
 
-**Norte**
+**Notes**
 1. Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB.Currently, those databses can be created in the same postgresql database after all docker contains are up
 
 2. Check for logs to make sure the app has been up and running:
@@ -397,6 +397,19 @@ $ npm start
 ```
 nest-docker-postgres    | This application is running on: http://[::1]:3000
 ```
+
+3. In case u see error: topic does not exist. Login to container / use any GUI kafka client  to create topics: report.create and report.ready manually.
+
+```
+kafka-topics \
+  --bootstrap-server localhost:9092 \
+  --create \
+  --topic report.ready \
+  --partitions 3 \
+  --replication-factor 1 \
+  --if-not-exists
+ ``` 
+
 
 ## API Documentation
 ### GraphQL Endpoints
