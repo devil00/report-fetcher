@@ -378,6 +378,7 @@ When all providers complete, results are aggregated and report is finalized
 
 ```bash
 $ docker system prune
+$ docker volume prune
 $ docker compose up --build
 ```
 
@@ -388,7 +389,14 @@ $ npm install
 $ npm start
 ```
 
-Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB.Currently, those databses can be created in the same postgresql database after all docker contains are up
+**Norte**
+1. Create tenant Databases: tenantA, tenantB etc to create report in each tenant DB.Currently, those databses can be created in the same postgresql database after all docker contains are up
+
+2. Check for logs to make sure the app has been up and running:
+
+```
+nest-docker-postgres    | This application is running on: http://[::1]:3000
+```
 
 ## API Documentation
 ### GraphQL Endpoints

@@ -17,6 +17,7 @@ export default () => ({
         password: process.env.REDIS_PASSWORD || '',
         use_tls: false,
     },
+    JWT_SECRET:  process.env.JWT_SECRET || 'default',
      kafka: {
         clientId: process.env.KAFKA_CLIENT_ID || 'nestjs-app',
         brokers: (process.env.KAFKA_BROKERS || 'kafka:29092').split(','),

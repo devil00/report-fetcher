@@ -1,7 +1,6 @@
 export enum QueueNames {
-  APPOINTMENT = 'appointment',
   REPORT = 'report',
-  APPOINTMENT_DLQ = 'appointment-dlq', // Dead Letter Queue
+  REPORT_DLQ = 'report-dlq', // Dead Letter Queue
 }
 
 export const JobNames = {

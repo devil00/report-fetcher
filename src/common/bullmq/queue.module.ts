@@ -16,7 +16,7 @@ import { QueueService } from './queue-service';
       },
     }),
     BullModule.registerQueue({
-      name: QueueNames.APPOINTMENT_DLQ,
+      name: QueueNames.REPORT_DLQ,
       defaultJobOptions: {
         removeOnComplete: true,
       },

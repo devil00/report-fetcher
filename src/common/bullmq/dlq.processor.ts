@@ -3,7 +3,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { JobNames, QueueNames } from './queue.constants';
 
-@Processor(QueueNames.APPOINTMENT_DLQ)
+@Processor(QueueNames.REPORT_DLQ)
 @Injectable()
 export class DlqProcessor extends WorkerHost {
   private readonly logger = new Logger(DlqProcessor.name);

@@ -48,8 +48,8 @@ async login(loginDto: LoginDto): Promise<AuthResponse> {
 
     const access_token = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get<string>('JWT_EXPIRESIN') ?? '10h' as any,
-      // secret: this.configService.get<string>('JWT_SECRET') ?? 'default_secret',
-      secret: 'default'
+      secret: this.configService.get<string>('JWT_SECRET') ?? 'default',
+      // secret: 'default',
   });
   
 
